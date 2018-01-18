@@ -84,7 +84,6 @@
       if(delay > max_delay)
         max_delay = delay;
     }else{
-      sum.num_queue--;                         /* job gets removed from queue */
       delay      = 0.0;                        /* no delay          */
     }
 
