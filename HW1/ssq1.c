@@ -48,19 +48,24 @@
   long   index     = 0;                        /* job index            */
   double arrival   = START;                    /* arrival time         */
   double delay;                                /* delay in queue       */
+  double max_delay = 0;                        /* max delay            */
+  int num_queue;                               /* number of jobs in queue at time = 400 */
+  double num_delayed;                          /* number of jobs that are delayed */ 
   double service;                              /* service time         */
   double wait;                                 /* delay + service      */
   double departure = START;                    /* departure time       */
-  double observation = 0;		       /* observation time     */
-  double arrival_rate = 0;		       /* arrival rate 	       */
-  double service_rate = 0;		       /* service rate 	       */
+  double observation = 0;		                   /* observation time     */
+  double arrival_rate = 0;		                 /* arrival rate 	       */
+  double service_rate = 0;		                 /* service rate 	       */
+  double avg_queue = 0;		                     /* avg number of people in queue */
+  double avg_service = 0;		                   /* avg number of people in service */
+  int found = 0;
   struct {                                     /* sum of ...           */
     double delay;                              /*   delay times        */
     double wait;                               /*   wait times         */
     double service;                            /*   service times      */
     double interarrival;                       /*   interarrival times */
-    int numQueue;			       /*   jobs in queue      */
-    int numService;			       /*   jobs in service    */
+    int num_queue;			                       /*   jobs in queue      */
   } sum = {0.0, 0.0, 0.0, 0, 0};
 
   fp = fopen(FILENAME, "r");
@@ -72,13 +77,26 @@
   while (!feof(fp)) {
     index++;
     arrival      = GetArrival(fp);
-    if (arrival < departure) 
+    if (arrival < departure) {
+      num_delayed++;
+      sum.num_queue++;                         /* job gets added to queue */
       delay      = departure - arrival;        /* delay in queue    */
-    else 
+      if(delay > max_delay)
+        max_delay = delay;
+    }else{
+      sum.num_queue--;                         /* job gets removed from queue */
       delay      = 0.0;                        /* no delay          */
+    }
+
     service      = GetService(fp);
     wait         = delay + service;
     departure    = arrival + wait;             /* time of departure */
+
+    if(departure >= 400 && !found) {
+      num_queue = sum.num_queue;
+      found = 1;
+    }  
+
     sum.delay   += delay;
     sum.wait    += wait;
     sum.service += service;
@@ -86,29 +104,31 @@
   observation = departure;
   sum.interarrival = arrival - START;
   
-  
-  printf("\nfor %ld jobs\n", index);
+  printf("\n1. --------------------------------------\n");  	
+  printf("for %ld jobs\n", index);
   printf("   average interarrival time = %8.6f\n", sum.interarrival / index);
   printf("   average service time .... = %8.6f\n", sum.service / index);
   printf("   average delay ........... = %8.6f\n", sum.delay / index);
   printf("   average wait ............ = %8.6f\n", sum.wait / index);
-  printf("   -------------------------------------\n");  	
+  printf("2. --------------------------------------\n");  	
   /* Homework problem 2 starts here */
   arrival_rate = 1/(sum.interarrival/index);
   service_rate = 1/(sum.service/index);
+  avg_queue = sum.num_queue / observation;
+  avg_service = index / observation;
 
   printf("   arrival rate ............ = %8.6f\n", arrival_rate);
   printf("   service rate ............ = %8.6f\n", service_rate);
   printf("   server utilization ...... = %8.6f\n", sum.service / observation);
   printf("   traffic intensity  ...... = %8.6f\n", arrival_rate / service_rate);
-  printf("   average number in queue . = %8.6f\n", arrival_rate / service_rate);
-  printf("   average number in service = %8.6f\n", arrival_rate / service_rate);
-  printf("   average number at service = %8.6f\n", arrival_rate / service_rate);
-
-
-
-
-
+  printf("   average number in queue . = %8.6f\n", avg_queue);
+  printf("   average number in service = %8.6f\n", avg_service);
+  printf("   average number at server  = %8.6f\n", avg_queue + avg_service);
+  printf("3. --------------------------------------\n");
+  /* Homework problem 3 starts here */
+  printf("   max delay ............... = %8.6f\n", max_delay);
+  printf("   customers at time = 400 . = %d\n", num_queue);
+  printf("   proportion of delayed ... = %8.6f\n", num_delayed / index);
 
   fclose(fp);
   return (0);
